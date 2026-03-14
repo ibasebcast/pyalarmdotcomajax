@@ -16,6 +16,7 @@ import humps
 from mashumaro.exceptions import MissingField
 from rich.console import Group
 
+from pyalarmdotcomajax._version import __version__
 from pyalarmdotcomajax.const import (
     API_URL_BASE,
     DEBUG_REQUEST_DUMP_MAX_LEN,
@@ -160,9 +161,13 @@ __all__: tuple[str, ...] = (  # noqa: RUF022
     "AdcControllerT",
     "ResourceEventMessage",
 )
+
 T = TypeVar("T", bound=JsonApiBaseElement)
 
 log = logging.getLogger(__name__)
+
+FORK_NAME = "ibasebcast"
+FORK_REPO = "https://github.com/ibasebcast/pyalarmdotcomajax"
 
 MFA_COOKIE_KEY = "twoFactorAuthenticationId"
 
@@ -216,6 +221,13 @@ class AlarmBridge:
 
         self._image_sensors = ImageSensorController(self)
         self._image_sensor_images = ImageSensorImageController(self)
+
+        log.info(
+            "Loaded pyalarmdotcomajax %s from %s fork (%s)",
+            __version__,
+            FORK_NAME,
+            FORK_REPO,
+        )
 
     async def initialize(self) -> None:
         """Initialize bridge connection, or finish initialization after OTP has been submitted."""

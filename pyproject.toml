@@ -7,7 +7,7 @@ name = "pyalarmdotcomajax"
 version = "2026.3.14"
 description = "Async Python interface for Alarm.com used by the ibasebcast Home Assistant integration"
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.12"
 license = { text = "MIT" }
 authors = [
   { name = "Chris Pulliam" }
