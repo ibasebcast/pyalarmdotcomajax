@@ -16,7 +16,6 @@ import humps
 from mashumaro.exceptions import MissingField
 from rich.console import Group
 
-from pyalarmdotcomajax._version import __version__
 from pyalarmdotcomajax.const import (
     API_URL_BASE,
     DEBUG_REQUEST_DUMP_MAX_LEN,
@@ -161,7 +160,6 @@ __all__: tuple[str, ...] = (  # noqa: RUF022
     "AdcControllerT",
     "ResourceEventMessage",
 )
-
 T = TypeVar("T", bound=JsonApiBaseElement)
 
 log = logging.getLogger(__name__)
@@ -221,11 +219,9 @@ class AlarmBridge:
 
         self._image_sensors = ImageSensorController(self)
         self._image_sensor_images = ImageSensorImageController(self)
-
-        log.info(
-            "Loaded pyalarmdotcomajax %s from %s fork (%s)",
+        log.warning(
+            "IBASEBCAST pyalarmdotcomajax fork loaded, version=%s, repo=%s",
             __version__,
-            FORK_NAME,
             FORK_REPO,
         )
 
