@@ -221,7 +221,7 @@ class AlarmBridge:
 
         self._image_sensors = ImageSensorController(self)
         self._image_sensor_images = ImageSensorImageController(self)
-        log.info(
+        log.debug(
             "IBASEBCAST pyalarmdotcomajax fork loaded, version=%s, repo=%s",
             __version__,
             FORK_REPO,
