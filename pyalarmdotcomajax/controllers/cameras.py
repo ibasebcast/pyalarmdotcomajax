@@ -31,8 +31,23 @@ class CameraController(BaseController[Camera]):
         self, data: list[Resource] | Resource
     ) -> list[Resource] | Resource:
         """Return all supported cameras reported by the Alarm.com endpoint."""
-
+        log.warning("=== CAMERA _device_filter RAW DATA === %s", data)
         return data
+
+    async def _refresh(
+        self,
+        pre_fetched: list[Resource] | None = None,
+        resource_id: str | None = None,
+    ) -> None:
+        """Refresh controller with extra logging."""
+        log.warning(
+            "=== CAMERA _refresh called === pre_fetched=%s resource_id=%s target_ids=%s",
+            pre_fetched,
+            resource_id,
+            getattr(self, "_target_device_ids", None),
+        )
+        await super()._refresh(pre_fetched=pre_fetched, resource_id=resource_id)
+        log.warning("=== CAMERA CONTROLLER ITEMS AFTER REFRESH === %s", self.items)
 
     async def get_live_stream_info(self, id: str) -> dict[str, Any]:
         """Fetch live WebRTC stream information for a camera."""
@@ -52,6 +67,7 @@ class CameraController(BaseController[Camera]):
                     use_ajax_key=True,
                 ) as rsp:
                     text_rsp = await rsp.text()
+                    log.warning("=== CAMERA STREAM RAW RESPONSE === %s", text_rsp)
                     rsp.raise_for_status()
                     payload = json.loads(text_rsp)
             except aiohttp.ClientResponseError as err:
