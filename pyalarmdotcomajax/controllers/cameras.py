@@ -51,9 +51,12 @@ class CameraController(BaseController[Camera]):
                     "get",
                     url,
                     accept_types=ResponseTypes.JSON,
-                    use_ajax_key=True,
+                    use_ajax_key=False,
                 ) as rsp:
                     text_rsp = await rsp.text()
+                    log.warning("=== CAMERA FETCH STATUS === %s", rsp.status)
+                    log.warning("=== CAMERA FETCH URL === %s", url)
+                    log.warning("=== CAMERA FETCH RAW RESPONSE === %s", text_rsp[:2000])
                     rsp.raise_for_status()
                     payload = json.loads(text_rsp)
                     break
@@ -121,6 +124,11 @@ class CameraController(BaseController[Camera]):
                 self._register_or_update_resource(filtered, included)
             except Exception as err:
                 log.error("Failed to register camera resource %s: %s", filtered, err)
+
+        log.warning(
+            "=== CAMERA CONTROLLER ITEMS AFTER REFRESH === %s",
+            [f"{getattr(x, 'id', None)}:{getattr(x, 'name', None)}" for x in self.items],
+        )
 
     async def get_live_stream_info(self, id: str) -> dict[str, Any]:
         """Fetch live WebRTC stream information for a camera."""
