@@ -43,10 +43,10 @@ class CameraController(BaseController[Camera]):
         pre_fetched: list[Resource] | None = None,
         resource_id: str | None = None,
     ) -> None:
-        """Refresh controller with extra logging.
+        """Refresh controller.
 
-        If the bridge passes an empty prefetched list, force a direct fetch from the
-        camera endpoint instead of accepting the empty cache.
+        Cameras need a direct fetch because the bridge bulk prefetch does not appear
+        to populate camera resources for this endpoint.
         """
         log.warning(
             "=== CAMERA _refresh called === pre_fetched=%s resource_id=%s target_ids=%s",
@@ -55,13 +55,68 @@ class CameraController(BaseController[Camera]):
             getattr(self, "_target_device_ids", None),
         )
 
-        if pre_fetched == []:
-            log.warning(
-                "=== CAMERA forcing direct endpoint fetch because pre_fetched was empty ==="
-            )
-            pre_fetched = None
+        url = f"{API_URL_BASE}{self._resource_url_override}"
+        text_rsp = ""
 
-        await super()._refresh(pre_fetched=pre_fetched, resource_id=resource_id)
+        for attempt in range(2):
+            try:
+                async with self._bridge.create_request(
+                    "get",
+                    url,
+                    accept_types=ResponseTypes.JSON,
+                    use_ajax_key=True,
+                ) as rsp:
+                    text_rsp = await rsp.text()
+                    log.warning("=== CAMERA DIRECT FETCH RAW RESPONSE === %s", text_rsp[:2000])
+                    rsp.raise_for_status()
+                    payload = json.loads(text_rsp)
+                    break
+            except aiohttp.ClientResponseError as err:
+                if err.status in (401, 403) and attempt == 0:
+                    await self._bridge.login()
+                    continue
+                raise ServiceUnavailable(
+                    f"Failed to fetch camera list. HTTP {err.status}."
+                ) from err
+            except json.JSONDecodeError as err:
+                raise UnexpectedResponse(
+                    f"Camera list response was not valid JSON: {text_rsp[:500]}"
+                ) from err
+            except AuthenticationFailed:
+                if attempt == 0:
+                    await self._bridge.login()
+                    continue
+                raise
+        else:
+            raise ServiceUnavailable("Failed to fetch camera list.")
+
+        data = payload.get("data") if isinstance(payload, dict) else None
+        included = payload.get("included") if isinstance(payload, dict) else None
+
+        log.warning("=== CAMERA DIRECT FETCH DATA === %s", data)
+        log.warning("=== CAMERA DIRECT FETCH INCLUDED === %s", included)
+
+        if data is None:
+            log.warning("=== CAMERA DIRECT FETCH RETURNED NO DATA FIELD ===")
+            self._resources.clear()
+            return
+
+        filtered = self._device_filter(data)
+
+        self._resources.clear()
+
+        if isinstance(filtered, list):
+            for item in filtered:
+                try:
+                    self._register_or_update_resource(item, included)
+                except Exception as err:
+                    log.error("Failed to register camera resource %s: %s", item, err)
+        else:
+            try:
+                self._register_or_update_resource(filtered, included)
+            except Exception as err:
+                log.error("Failed to register camera resource %s: %s", filtered, err)
+
         log.warning("=== CAMERA CONTROLLER ITEMS AFTER REFRESH === %s", self.items)
 
     async def get_live_stream_info(self, id: str) -> dict[str, Any]:
@@ -82,7 +137,7 @@ class CameraController(BaseController[Camera]):
                     use_ajax_key=True,
                 ) as rsp:
                     text_rsp = await rsp.text()
-                    log.warning("=== CAMERA STREAM RAW RESPONSE === %s", text_rsp)
+                    log.warning("=== CAMERA STREAM RAW RESPONSE === %s", text_rsp[:2000])
                     rsp.raise_for_status()
                     payload = json.loads(text_rsp)
             except aiohttp.ClientResponseError as err:
