@@ -132,10 +132,6 @@ class CameraController(BaseController[Camera]):
 
     async def get_live_stream_info(self, id: str) -> dict[str, Any]:
         """Fetch live WebRTC stream information for a camera."""
-
-        if not self.get(id):
-            raise UnexpectedResponse(f"Camera {id} not found in controller cache.")
-
         url = f"{API_URL_BASE}video/videoSources/liveVideoHighestResSources/{id}"
         text_rsp = ""
 
@@ -148,6 +144,8 @@ class CameraController(BaseController[Camera]):
                     use_ajax_key=True,
                 ) as rsp:
                     text_rsp = await rsp.text()
+                    log.warning("=== LIVE STREAM INFO STATUS %s FOR %s ===", rsp.status, id)
+                    log.warning("=== LIVE STREAM INFO RESPONSE %s === %s", id, text_rsp[:2000])
                     rsp.raise_for_status()
                     payload = json.loads(text_rsp)
             except aiohttp.ClientResponseError as err:
