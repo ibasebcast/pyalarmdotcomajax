@@ -27,7 +27,7 @@ log = logging.getLogger(__name__)
 class CameraController(BaseController[Camera]):
     """Controller for cameras."""
 
-    _resource_url_override = "video/devices/cameras?filterByLiveViewDisplayable=true"
+    _resource_url_override = "video/devices/cameras"
     _is_device_controller = True
 
     def _device_filter(
@@ -60,6 +60,7 @@ class CameraController(BaseController[Camera]):
                     rsp.raise_for_status()
                     payload = json.loads(text_rsp)
                     break
+
             except aiohttp.ClientResponseError as err:
                 if err.status in (401, 403) and attempt == 0:
                     await self._bridge.login()
@@ -71,6 +72,7 @@ class CameraController(BaseController[Camera]):
                 )
                 self._resources.clear()
                 return
+
             except json.JSONDecodeError:
                 log.warning(
                     "Alarm.com camera list response was not valid JSON, leaving camera controller empty. Response: %s",
@@ -78,6 +80,7 @@ class CameraController(BaseController[Camera]):
                 )
                 self._resources.clear()
                 return
+
             except AuthenticationFailed:
                 if attempt == 0:
                     await self._bridge.login()
@@ -88,6 +91,7 @@ class CameraController(BaseController[Camera]):
                 )
                 self._resources.clear()
                 return
+
             except Exception as err:
                 log.warning(
                     "Unexpected error while fetching camera list: %s. Leaving camera controller empty.",
@@ -130,7 +134,7 @@ class CameraController(BaseController[Camera]):
             [f"{getattr(x, 'id', None)}:{getattr(x, 'name', None)}" for x in self.items],
         )
 
-    async def get_live_stream_info(self, id: str) -> dict[str, Any]:
+    async def get_live_stream_info(self, id: str) -> dict[str, Any] | None:
         """Fetch live WebRTC stream information for a camera."""
         url = f"{API_URL_BASE}video/videoSources/liveVideoHighestResSources/{id}"
         text_rsp = ""
@@ -141,13 +145,14 @@ class CameraController(BaseController[Camera]):
                     "get",
                     url,
                     accept_types=ResponseTypes.JSON,
-                    use_ajax_key=True,
+                    use_ajax_key=False,
                 ) as rsp:
                     text_rsp = await rsp.text()
                     log.warning("=== LIVE STREAM INFO STATUS %s FOR %s ===", rsp.status, id)
                     log.warning("=== LIVE STREAM INFO RESPONSE %s === %s", id, text_rsp[:2000])
                     rsp.raise_for_status()
                     payload = json.loads(text_rsp)
+
             except aiohttp.ClientResponseError as err:
                 if err.status in (401, 403) and attempt == 0:
                     await self._bridge.login()
@@ -155,33 +160,32 @@ class CameraController(BaseController[Camera]):
                 raise UnexpectedResponse(
                     f"Failed to fetch camera stream info for {id}. HTTP {err.status}."
                 ) from err
+
             except json.JSONDecodeError as err:
                 raise UnexpectedResponse(
                     f"Camera stream info response was not valid JSON: {text_rsp[:500]}"
                 ) from err
+
             except AuthenticationFailed:
                 if attempt == 0:
                     await self._bridge.login()
                     continue
                 raise
 
-            data = payload.get("data") if isinstance(payload, dict) else None
-            attrs = data.get("attributes") if isinstance(data, dict) else None
-            if not isinstance(attrs, dict):
-                raise UnexpectedResponse(
-                    f"Camera stream info response missing attributes payload: {text_rsp[:500]}"
-                )
+            data = payload.get("data", {}) if isinstance(payload, dict) else {}
+            included = payload.get("included", []) if isinstance(payload, dict) else []
 
-            required_keys = (
-                "signallingServerUrl",
-                "signallingServerToken",
-                "cameraAuthToken",
-            )
-            if not all(attrs.get(key) for key in required_keys):
-                raise UnexpectedResponse(
-                    f"Camera stream info response missing required token fields: {text_rsp[:500]}"
-                )
+            top_attrs = data.get("attributes", {})
+            ice_servers_str = top_attrs.get("iceServers")
+            ice_servers = json.loads(ice_servers_str) if ice_servers_str else []
 
-            return attrs
+            for inc in included:
+                if inc.get("type") == "video/videoSources/endToEndWebrtcConnectionInfo":
+                    config = inc.get("attributes", {})
+                    config["iceServers"] = ice_servers
+                    return config
 
-        raise UnexpectedResponse(f"Failed to fetch camera stream info for {id}.")
+            log.warning("No endToEndWebrtcConnectionInfo found for camera %s", id)
+            return None
+
+        return None
