@@ -12,7 +12,6 @@ from pyalarmdotcomajax.const import API_URL_BASE, ResponseTypes
 from pyalarmdotcomajax.controllers.base import BaseController
 from pyalarmdotcomajax.exceptions import (
     AuthenticationFailed,
-    ServiceUnavailable,
     UnexpectedResponse,
 )
 from pyalarmdotcomajax.models.base import ResourceType
@@ -67,7 +66,10 @@ class CameraController(BaseController[Camera]):
                     use_ajax_key=True,
                 ) as rsp:
                     text_rsp = await rsp.text()
-                    log.warning("=== CAMERA DIRECT FETCH RAW RESPONSE === %s", text_rsp[:2000])
+                    log.warning(
+                        "=== CAMERA DIRECT FETCH RAW RESPONSE === %s",
+                        text_rsp[:2000],
+                    )
                     rsp.raise_for_status()
                     payload = json.loads(text_rsp)
                     break
@@ -75,20 +77,43 @@ class CameraController(BaseController[Camera]):
                 if err.status in (401, 403) and attempt == 0:
                     await self._bridge.login()
                     continue
-                raise ServiceUnavailable(
-                    f"Failed to fetch camera list. HTTP {err.status}."
-                ) from err
-            except json.JSONDecodeError as err:
-                raise UnexpectedResponse(
-                    f"Camera list response was not valid JSON: {text_rsp[:500]}"
-                ) from err
+
+                log.warning(
+                    "Alarm.com camera list endpoint failed with HTTP %s, leaving camera controller empty.",
+                    err.status,
+                )
+                self._resources.clear()
+                return
+            except json.JSONDecodeError:
+                log.warning(
+                    "Alarm.com camera list response was not valid JSON, leaving camera controller empty. Response: %s",
+                    text_rsp[:500],
+                )
+                self._resources.clear()
+                return
             except AuthenticationFailed:
                 if attempt == 0:
                     await self._bridge.login()
                     continue
-                raise
+
+                log.warning(
+                    "Authentication failed while fetching camera list, leaving camera controller empty."
+                )
+                self._resources.clear()
+                return
+            except Exception as err:
+                log.warning(
+                    "Unexpected error while fetching camera list: %s. Leaving camera controller empty.",
+                    err,
+                )
+                self._resources.clear()
+                return
         else:
-            raise ServiceUnavailable("Failed to fetch camera list.")
+            log.warning(
+                "Alarm.com camera list endpoint could not be fetched, leaving camera controller empty."
+            )
+            self._resources.clear()
+            return
 
         data = payload.get("data") if isinstance(payload, dict) else None
         included = payload.get("included") if isinstance(payload, dict) else None
@@ -144,7 +169,7 @@ class CameraController(BaseController[Camera]):
                 if err.status in (401, 403) and attempt == 0:
                     await self._bridge.login()
                     continue
-                raise ServiceUnavailable(
+                raise UnexpectedResponse(
                     f"Failed to fetch camera stream info for {id}. HTTP {err.status}."
                 ) from err
             except json.JSONDecodeError as err:
@@ -176,4 +201,4 @@ class CameraController(BaseController[Camera]):
 
             return attrs
 
-        raise ServiceUnavailable(f"Failed to fetch camera stream info for {id}.")
+        raise UnexpectedResponse(f"Failed to fetch camera stream info for {id}.")
