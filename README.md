@@ -46,3 +46,8 @@ pip install git+https://github.com/ibasebcast/pyalarmdotcomajax.git@2026.3.14
 
 This fork release: `2026.3.14`
 Base code line: `0.6.0-beta.9`
+
+
+## Camera support
+
+This fork now exposes Alarm.com camera resources and provides a `get_live_stream_info(camera_id)` helper on the camera controller for compatible WebRTC cameras.

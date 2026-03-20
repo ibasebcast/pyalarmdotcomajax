@@ -1,8 +1,16 @@
 """Alarm.com controller for cameras."""
 
-import logging
+from __future__ import annotations
 
+import json
+import logging
+from typing import Any
+
+import aiohttp
+
+from pyalarmdotcomajax.const import API_URL_BASE, ResponseTypes
 from pyalarmdotcomajax.controllers.base import BaseController
+from pyalarmdotcomajax.exceptions import AuthenticationFailed, ServiceUnavailable, UnexpectedResponse
 from pyalarmdotcomajax.models.base import ResourceType
 from pyalarmdotcomajax.models.camera import Camera
 from pyalarmdotcomajax.models.jsonapi import Resource
@@ -22,20 +30,64 @@ class CameraController(BaseController[Camera]):
     def _device_filter(
         self, data: list[Resource] | Resource
     ) -> list[Resource] | Resource:
-        """
-        Only return Skybell HD cameras.
+        """Return all supported cameras reported by the Alarm.com endpoint."""
 
-        We don't really support cameras (no images / streaming), we only support settings for the Skybell HD.
-        """
+        return data
 
-        if isinstance(data, Resource):
-            data = [data]
+    async def get_live_stream_info(self, id: str) -> dict[str, Any]:
+        """Fetch live WebRTC stream information for a camera."""
 
-        # TODO: Make this work.
-        # return [resource for resource in data if is_skybell(resource)]
-        return []
+        if not self.get(id):
+            raise UnexpectedResponse(f"Camera {id} not found in controller cache.")
 
-    async def _post_init(self) -> None:
-        """Post init hook."""
+        url = f"{API_URL_BASE}video/videoSources/liveVideoHighestResSources/{id}"
+        text_rsp = ""
 
-        # self._skybell_controller = SkybellExtensionController(self._bridge)
+        for attempt in range(2):
+            try:
+                async with self._bridge.create_request(
+                    "get",
+                    url,
+                    accept_types=ResponseTypes.JSON,
+                    use_ajax_key=True,
+                ) as rsp:
+                    text_rsp = await rsp.text()
+                    rsp.raise_for_status()
+                    payload = json.loads(text_rsp)
+            except aiohttp.ClientResponseError as err:
+                if err.status in (401, 403) and attempt == 0:
+                    await self._bridge.login()
+                    continue
+                raise ServiceUnavailable(
+                    f"Failed to fetch camera stream info for {id}. HTTP {err.status}."
+                ) from err
+            except json.JSONDecodeError as err:
+                raise UnexpectedResponse(
+                    f"Camera stream info response was not valid JSON: {text_rsp[:500]}"
+                ) from err
+            except AuthenticationFailed:
+                if attempt == 0:
+                    await self._bridge.login()
+                    continue
+                raise
+
+            data = payload.get("data") if isinstance(payload, dict) else None
+            attrs = data.get("attributes") if isinstance(data, dict) else None
+            if not isinstance(attrs, dict):
+                raise UnexpectedResponse(
+                    f"Camera stream info response missing attributes payload: {text_rsp[:500]}"
+                )
+
+            required_keys = (
+                "signallingServerUrl",
+                "signallingServerToken",
+                "cameraAuthToken",
+            )
+            if not all(attrs.get(key) for key in required_keys):
+                raise UnexpectedResponse(
+                    f"Camera stream info response missing required token fields: {text_rsp[:500]}"
+                )
+
+            return attrs
+
+        raise ServiceUnavailable(f"Failed to fetch camera stream info for {id}.")
