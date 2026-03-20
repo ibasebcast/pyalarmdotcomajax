@@ -27,14 +27,13 @@ log = logging.getLogger(__name__)
 class CameraController(BaseController[Camera]):
     """Controller for cameras."""
 
-    _resource_url_override = "video/devices/cameras"
+    _resource_url_override = "video/devices/cameras?filterByLiveViewDisplayable=true"
     _is_device_controller = True
 
     def _device_filter(
         self, data: list[Resource] | Resource
     ) -> list[Resource] | Resource:
         """Return all supported cameras reported by the Alarm.com endpoint."""
-        log.warning("=== CAMERA _device_filter RAW DATA === %s", data)
         return data
 
     async def _refresh(
@@ -42,18 +41,7 @@ class CameraController(BaseController[Camera]):
         pre_fetched: list[Resource] | None = None,
         resource_id: str | None = None,
     ) -> None:
-        """Refresh controller.
-
-        Cameras need a direct fetch because the bridge bulk prefetch does not appear
-        to populate camera resources for this endpoint.
-        """
-        log.warning(
-            "=== CAMERA _refresh called === pre_fetched=%s resource_id=%s target_ids=%s",
-            pre_fetched,
-            resource_id,
-            getattr(self, "_target_device_ids", None),
-        )
-
+        """Refresh controller directly from the camera endpoint."""
         url = f"{API_URL_BASE}{self._resource_url_override}"
         text_rsp = ""
 
@@ -66,10 +54,6 @@ class CameraController(BaseController[Camera]):
                     use_ajax_key=True,
                 ) as rsp:
                     text_rsp = await rsp.text()
-                    log.warning(
-                        "=== CAMERA DIRECT FETCH RAW RESPONSE === %s",
-                        text_rsp[:2000],
-                    )
                     rsp.raise_for_status()
                     payload = json.loads(text_rsp)
                     break
@@ -118,11 +102,7 @@ class CameraController(BaseController[Camera]):
         data = payload.get("data") if isinstance(payload, dict) else None
         included = payload.get("included") if isinstance(payload, dict) else None
 
-        log.warning("=== CAMERA DIRECT FETCH DATA === %s", data)
-        log.warning("=== CAMERA DIRECT FETCH INCLUDED === %s", included)
-
         if data is None:
-            log.warning("=== CAMERA DIRECT FETCH RETURNED NO DATA FIELD ===")
             self._resources.clear()
             return
 
@@ -142,8 +122,6 @@ class CameraController(BaseController[Camera]):
             except Exception as err:
                 log.error("Failed to register camera resource %s: %s", filtered, err)
 
-        log.warning("=== CAMERA CONTROLLER ITEMS AFTER REFRESH === %s", self.items)
-
     async def get_live_stream_info(self, id: str) -> dict[str, Any]:
         """Fetch live WebRTC stream information for a camera."""
 
@@ -162,7 +140,6 @@ class CameraController(BaseController[Camera]):
                     use_ajax_key=True,
                 ) as rsp:
                     text_rsp = await rsp.text()
-                    log.warning("=== CAMERA STREAM RAW RESPONSE === %s", text_rsp[:2000])
                     rsp.raise_for_status()
                     payload = json.loads(text_rsp)
             except aiohttp.ClientResponseError as err:
