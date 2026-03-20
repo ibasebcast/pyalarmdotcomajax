@@ -10,7 +10,11 @@ import aiohttp
 
 from pyalarmdotcomajax.const import API_URL_BASE, ResponseTypes
 from pyalarmdotcomajax.controllers.base import BaseController
-from pyalarmdotcomajax.exceptions import AuthenticationFailed, ServiceUnavailable, UnexpectedResponse
+from pyalarmdotcomajax.exceptions import (
+    AuthenticationFailed,
+    ServiceUnavailable,
+    UnexpectedResponse,
+)
 from pyalarmdotcomajax.models.base import ResourceType
 from pyalarmdotcomajax.models.camera import Camera
 from pyalarmdotcomajax.models.jsonapi import Resource
@@ -39,13 +43,24 @@ class CameraController(BaseController[Camera]):
         pre_fetched: list[Resource] | None = None,
         resource_id: str | None = None,
     ) -> None:
-        """Refresh controller with extra logging."""
+        """Refresh controller with extra logging.
+
+        If the bridge passes an empty prefetched list, force a direct fetch from the
+        camera endpoint instead of accepting the empty cache.
+        """
         log.warning(
             "=== CAMERA _refresh called === pre_fetched=%s resource_id=%s target_ids=%s",
             pre_fetched,
             resource_id,
             getattr(self, "_target_device_ids", None),
         )
+
+        if pre_fetched == []:
+            log.warning(
+                "=== CAMERA forcing direct endpoint fetch because pre_fetched was empty ==="
+            )
+            pre_fetched = None
+
         await super()._refresh(pre_fetched=pre_fetched, resource_id=resource_id)
         log.warning("=== CAMERA CONTROLLER ITEMS AFTER REFRESH === %s", self.items)
 
