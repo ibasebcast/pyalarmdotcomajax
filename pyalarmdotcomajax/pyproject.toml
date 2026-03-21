@@ -1,0 +1,45 @@
+[build-system]
+build-backend = "setuptools.build_meta"
+requires = ["setuptools>=69"]
+
+[project]
+name = "pyalarmdotcomajax"
+version = "2026.3.21"
+description = "Async Python interface for Alarm.com used by the ibasebcast Home Assistant integration"
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "MIT" }
+authors = [
+  { name = "Chris Pulliam" }
+]
+maintainers = [
+  { name = "Chris Pulliam" }
+]
+keywords = ["Alarm.com", "Home Assistant", "Security System"]
+classifiers = [
+  "Development Status :: 5 - Production/Stable",
+  "Environment :: Web Environment",
+  "Intended Audience :: Developers",
+  "Natural Language :: English",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Topic :: Home Automation",
+  "Topic :: Software Development :: Libraries :: Python Modules",
+]
+dynamic = ["dependencies"]
+
+[project.scripts]
+adc = "pyalarmdotcomajax.adc.adc:app"
+
+[project.urls]
+Repository = "https://github.com/ibasebcast/pyalarmdotcomajax"
+
+[tool.setuptools.dynamic]
+dependencies = { file = ["requirements.txt"] }
+
+[tool.setuptools.package-data]
+pyalarmdotcomajax = ["py.typed"]
+
+[tool.setuptools.packages.find]
+include = ["pyalarmdotcomajax*"]
+where = ["."]
