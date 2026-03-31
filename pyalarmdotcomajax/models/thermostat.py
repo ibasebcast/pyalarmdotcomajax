@@ -86,7 +86,7 @@ class ThermostatAttributes(TemperatureDeviceAttributes[ThermostatState]):
     desired_cool_setpoint: float = field(metadata={"description": "The desired cool setpoint."})
     desired_heat_setpoint: float = field(metadata={"description": "The desired heat setpoint."})
     fan_duration: int | None = field(metadata={"description": "The duration to run the fan. Only used to offset the commands."})
-    fan_mode: ThermostatReportedFanMode = field(metadata={"description": "The current fan mode."})
+    fan_mode: ThermostatReportedFanMode | None = field(default=None, metadata={"description": "The current fan mode."})
     forwarding_ambient_temp: float = field(metadata={"description": "The current temperature including any additional temperature sensor averaging."})
     has_pending_setpoint_change: bool = field(metadata={"description": "Indicates if there is a pending setpoint change."})
     has_pending_temp_mode_change: bool = field(metadata={"description": "Indicates if there is a pending temperature mode change."})
