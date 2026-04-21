@@ -12,6 +12,7 @@ from enum import Enum
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Any, ClassVar, Generic, TypeVar
 
+
 from rich.console import Group
 
 from pyalarmdotcomajax.const import ATTR_DESIRED_STATE, ATTR_STATE

@@ -152,6 +152,7 @@ class ThermostatAttributes(TemperatureDeviceAttributes[ThermostatState]):
         return self.has_pending_setpoint_change or self.has_pending_temp_mode_change
 
 
+
 @dataclass
 class Thermostat(AdcDeviceResource[ThermostatAttributes]):
     """Thermostat resource."""

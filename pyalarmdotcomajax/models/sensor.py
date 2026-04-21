@@ -88,6 +88,7 @@ class SensorAttributes(BaseManagedDeviceAttributes[SensorState]):
     # fmt: on
 
 
+
 @dataclass
 class Sensor(AdcSubtypedResource[SensorSubtype, SensorAttributes]):
     """Sensor resource."""

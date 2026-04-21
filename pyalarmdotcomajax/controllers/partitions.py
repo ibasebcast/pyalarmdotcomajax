@@ -7,6 +7,7 @@ from enum import StrEnum
 from types import MappingProxyType
 from typing import Annotated, Any, Optional
 
+
 import typer
 
 from pyalarmdotcomajax.adc.util import Param_Id, cli_action

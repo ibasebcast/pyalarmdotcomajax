@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Annotated, Any, Optional
 
 import typer
 
+
 from pyalarmdotcomajax.adc.util import ValueEnum, cli_action
 from pyalarmdotcomajax.const import ATTR_DESIRED_STATE, ATTR_STATE
 from pyalarmdotcomajax.controllers.base import BaseController, device_controller

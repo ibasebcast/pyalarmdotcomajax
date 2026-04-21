@@ -113,6 +113,7 @@ class PartitionAttributes(BaseManagedDeviceAttributes[PartitionState]):
         )
 
 
+
 @dataclass
 class Partition(AdcDeviceResource[PartitionAttributes]):
     """Partition resource."""
