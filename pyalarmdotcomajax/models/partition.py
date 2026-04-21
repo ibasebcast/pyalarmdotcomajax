@@ -44,7 +44,7 @@ class ExtendedArmingOptionItems(IntEnum):
         return ExtendedArmingOptionItems.BYPASS_SENSORS
 
 
-@dataclass(kw_only=True)
+@dataclass
 class ExtendedArmingOptions(AdcResourceAttributes):
     """Extended arming options."""
 
@@ -71,9 +71,18 @@ def _flatten_options(
     return flattened
 
 
-@dataclass(kw_only=True)
-class PartitionAttributes(BaseManagedDeviceAttributes[PartitionState]):
+@dataclass
+class PartitionAttributes(BaseManagedDeviceAttributes):
     """Attributes of partition."""
+
+    # Required fields without defaults must come first in a dataclass.
+    # The prior ordering caused the import crash you saw at class creation time.
+    extended_arming_options: ExtendedArmingOptions = field(
+        metadata={"description": "The supported extended arming options for each arming mode."}
+    )
+    invalid_extended_arming_options: ExtendedArmingOptions = field(
+        metadata={"description": "The combinations of extended arming options that are invalid for each arming mode."}
+    )
 
     desired_state: PartitionState | None = field(
         metadata={"description": "Desired device state."},
@@ -82,15 +91,6 @@ class PartitionAttributes(BaseManagedDeviceAttributes[PartitionState]):
     state: PartitionState = field(
         metadata={"description": "Current device state."},
         default=PartitionState.UNKNOWN,
-    )
-
-    extended_arming_options: ExtendedArmingOptions = field(
-        metadata={"description": "The supported extended arming options for each arming mode."},
-        default_factory=ExtendedArmingOptions,
-    )
-    invalid_extended_arming_options: ExtendedArmingOptions = field(
-        metadata={"description": "The combinations of extended arming options that are invalid for each arming mode."},
-        default_factory=ExtendedArmingOptions,
     )
 
     # fmt: off
@@ -107,6 +107,9 @@ class PartitionAttributes(BaseManagedDeviceAttributes[PartitionState]):
     @property
     def supports_night_arming(self) -> bool:
         """Return whether night arming is supported."""
+
+        if self.extended_arming_options is None:
+            return False
 
         return ExtendedArmingOptionItems.NIGHT_ARMING in _flatten_options(
             self.extended_arming_options.armed_night
