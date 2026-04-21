@@ -44,6 +44,7 @@ class CameraController(BaseController[Camera]):
         """Refresh controller directly from the camera endpoint."""
         url = f"{API_URL_BASE}{self._resource_url_override}"
         text_rsp = ""
+        payload: dict[str, Any] | None = None
 
         for attempt in range(2):
             try:
@@ -54,9 +55,19 @@ class CameraController(BaseController[Camera]):
                     use_ajax_key=False,
                 ) as rsp:
                     text_rsp = await rsp.text()
-                    log.warning("=== CAMERA FETCH STATUS === %s", rsp.status)
-                    log.warning("=== CAMERA FETCH URL === %s", url)
-                    log.warning("=== CAMERA FETCH RAW RESPONSE === %s", text_rsp[:2000])
+
+                    if rsp.status == 403:
+                        log.debug(
+                            "Alarm.com camera list endpoint returned 403 (NotAllowed). "
+                            "Skipping camera list refresh and leaving camera controller empty."
+                        )
+                        self._resources.clear()
+                        return
+
+                    if rsp.status == 401 and attempt == 0:
+                        await self._bridge.login()
+                        continue
+
                     rsp.raise_for_status()
                     payload = json.loads(text_rsp)
                     break
@@ -75,7 +86,8 @@ class CameraController(BaseController[Camera]):
 
             except json.JSONDecodeError:
                 log.warning(
-                    "Alarm.com camera list response was not valid JSON, leaving camera controller empty. Response: %s",
+                    "Alarm.com camera list response was not valid JSON, leaving camera controller empty. "
+                    "Response: %s",
                     text_rsp[:500],
                 )
                 self._resources.clear()
@@ -106,6 +118,10 @@ class CameraController(BaseController[Camera]):
             self._resources.clear()
             return
 
+        if payload is None:
+            self._resources.clear()
+            return
+
         data = payload.get("data") if isinstance(payload, dict) else None
         included = payload.get("included") if isinstance(payload, dict) else None
 
@@ -120,17 +136,17 @@ class CameraController(BaseController[Camera]):
         if isinstance(filtered, list):
             for item in filtered:
                 try:
-                    self._register_or_update_resource(item, included)
+                    await self._register_or_update_resource(item, included)
                 except Exception as err:
                     log.error("Failed to register camera resource %s: %s", item, err)
         else:
             try:
-                self._register_or_update_resource(filtered, included)
+                await self._register_or_update_resource(filtered, included)
             except Exception as err:
                 log.error("Failed to register camera resource %s: %s", filtered, err)
 
-        log.warning(
-            "=== CAMERA CONTROLLER ITEMS AFTER REFRESH === %s",
+        log.debug(
+            "Camera controller items after refresh: %s",
             [f"{getattr(x, 'id', None)}:{getattr(x, 'name', None)}" for x in self.items],
         )
 
@@ -148,8 +164,11 @@ class CameraController(BaseController[Camera]):
                     use_ajax_key=False,
                 ) as rsp:
                     text_rsp = await rsp.text()
-                    log.warning("=== LIVE STREAM INFO STATUS %s FOR %s ===", rsp.status, id)
-                    log.warning("=== LIVE STREAM INFO RESPONSE %s === %s", id, text_rsp[:2000])
+
+                    if rsp.status == 401 and attempt == 0:
+                        await self._bridge.login()
+                        continue
+
                     rsp.raise_for_status()
                     payload = json.loads(text_rsp)
 
@@ -176,16 +195,49 @@ class CameraController(BaseController[Camera]):
             included = payload.get("included", []) if isinstance(payload, dict) else []
 
             top_attrs = data.get("attributes", {})
-            ice_servers_str = top_attrs.get("iceServers")
-            ice_servers = json.loads(ice_servers_str) if ice_servers_str else []
+
+            ice_servers_raw = top_attrs.get("iceServers")
+            ice_servers: list[dict[str, Any]] = []
+            if isinstance(ice_servers_raw, str) and ice_servers_raw:
+                try:
+                    ice_servers = json.loads(ice_servers_raw)
+                except json.JSONDecodeError:
+                    log.debug("Could not decode iceServers JSON for camera %s", id)
+
+            proxy_config: dict[str, Any] | None = None
+            end_to_end_config: dict[str, Any] | None = None
 
             for inc in included:
-                if inc.get("type") == "video/videoSources/endToEndWebrtcConnectionInfo":
-                    config = inc.get("attributes", {})
-                    config["iceServers"] = ice_servers
-                    return config
+                inc_type = inc.get("type")
+                attrs = inc.get("attributes", {})
 
-            log.warning("No endToEndWebrtcConnectionInfo found for camera %s", id)
+                if inc_type == "video/videoSources/endToEndWebrtcConnectionInfo":
+                    end_to_end_config = dict(attrs)
+                    end_to_end_config["iceServers"] = ice_servers
+
+                elif inc_type == "video/videoSources/proxyWebrtcConnectionInfo":
+                    proxy_config = dict(attrs)
+                    proxy_config["iceServers"] = ice_servers
+                    proxy_config["proxyUrl"] = top_attrs.get("proxyUrl")
+                    proxy_config["janusGatewayUrl"] = top_attrs.get("janusGatewayUrl")
+                    proxy_config["janusToken"] = top_attrs.get("janusToken")
+                    proxy_config["isMjpeg"] = top_attrs.get("isMjpeg", False)
+                    proxy_config["urlEncoded"] = top_attrs.get("urlEncoded", False)
+                    proxy_config["proxyStreamTimeoutTime"] = top_attrs.get("proxyStreamTimeoutTime")
+                    proxy_config["streamType"] = "janus"
+
+                    camera_suffix = str(id).split("-")[-1]
+                    if camera_suffix.isdigit():
+                        proxy_config["streamId"] = int(camera_suffix)
+
+            if end_to_end_config is not None:
+                end_to_end_config["streamType"] = "endToEnd"
+                return end_to_end_config
+
+            if proxy_config is not None:
+                return proxy_config
+
+            log.warning("No usable WebRTC connection info found for camera %s", id)
             return None
 
         return None

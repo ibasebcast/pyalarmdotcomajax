@@ -4,7 +4,7 @@ requires = ["setuptools>=69"]
 
 [project]
 name = "pyalarmdotcomajax"
-version = "2026.4.21.5"
+version = "2026.4.21.6"
 description = "Async Python interface for Alarm.com used by the ibasebcast Home Assistant integration"
 readme = "README.md"
 requires-python = ">=3.12"
