@@ -2,7 +2,7 @@
 
 from abc import ABC
 from dataclasses import dataclass, field
-from enum import Enum
+from enum import IntEnum
 
 from pyalarmdotcomajax.models.base import (
     AdcDeviceResource,
@@ -22,12 +22,11 @@ class TemperatureDeviceAttributes(BaseManagedDeviceAttributes[DeviceState], ABC)
     is_paired: bool = field(metadata={"description": "Is this device paired to another?"}, default=False)
     supports_humidity: bool = field(metadata={"description": "Whether the device supports humidity."}, default=False)
     humidity_level: int | None = field(metadata={"description": "The current humidity level reported by the device."}, default=None)
-    # temp_forwarding_active: bool  # Is this device's temperature currently being used to drive itself or another
-    # device?
+    # temp_forwarding_active: bool
     # fmt: on
 
 
-class ThermostatState(Enum):
+class ThermostatState(IntEnum):
     """Thermostat states."""
 
     UNKNOWN = 0
@@ -37,8 +36,13 @@ class ThermostatState(Enum):
     AUTO = 4
     AUXHEAT = 5
 
+    @classmethod
+    def _missing_(cls: type, value: object) -> ThermostatState:
+        """Set default enum member if an unknown value is provided."""
+        return ThermostatState.UNKNOWN
 
-class ThermostatReportedFanMode(Enum):
+
+class ThermostatReportedFanMode(IntEnum):
     """Thermostat fan modes as reported in the thermostat response object."""
 
     AUTO_LOW = 0
@@ -50,22 +54,37 @@ class ThermostatReportedFanMode(Enum):
     CIRCULATE = 6
     HUMIDITY = 7
 
+    @classmethod
+    def _missing_(cls: type, value: object) -> ThermostatReportedFanMode:
+        """Set default enum member if an unknown value is provided."""
+        return ThermostatReportedFanMode.AUTO_LOW
 
-class ThermostatFanMode(Enum):
-    """User-facomg thermostat fan modes."""
+
+class ThermostatFanMode(IntEnum):
+    """User-facing thermostat fan modes."""
 
     UNKNOWN = -1
     AUTO = 0
     ON = 1
     CIRCULATE = 2
 
+    @classmethod
+    def _missing_(cls: type, value: object) -> ThermostatFanMode:
+        """Set default enum member if an unknown value is provided."""
+        return ThermostatFanMode.UNKNOWN
 
-class ThermostatScheduleMode(Enum):
+
+class ThermostatScheduleMode(IntEnum):
     """Thermostat schedule modes."""
 
     MANUAL_MODE = 0
     SCHEDULED = 1
     SMART_SCHEDULES = 2
+
+    @classmethod
+    def _missing_(cls: type, value: object) -> ThermostatScheduleMode:
+        """Set default enum member if an unknown value is provided."""
+        return ThermostatScheduleMode.MANUAL_MODE
 
 
 THERMOSTAT_MODELS = {
@@ -77,6 +96,9 @@ THERMOSTAT_MODELS = {
 @dataclass(kw_only=True)
 class ThermostatAttributes(TemperatureDeviceAttributes[ThermostatState]):
     """Attributes of temperature device."""
+
+    desired_state: ThermostatState | None = field(metadata={"description": "Desired device state."}, default=None)
+    state: ThermostatState = field(metadata={"description": "Current device state."}, default=ThermostatState.UNKNOWN)
 
     # fmt: off
     auto_setpoint_buffer: float = field(metadata={"description": "The minimum buffer between the heat and cool setpoints."})
@@ -91,7 +113,7 @@ class ThermostatAttributes(TemperatureDeviceAttributes[ThermostatState]):
     has_pending_setpoint_change: bool = field(metadata={"description": "Indicates if there is a pending setpoint change."})
     has_pending_temp_mode_change: bool = field(metadata={"description": "Indicates if there is a pending temperature mode change."})
     heat_setpoint: float = field(metadata={"description": "The current heat setpoint."})
-    inferred_state: str = field(metadata={"description": "The inferred mode when in auto mode."})
+    inferred_state: ThermostatState = field(metadata={"description": "The inferred mode when in auto mode."}, default=ThermostatState.UNKNOWN)
     is_controlled: bool = field(metadata={"description": "Indicates if the thermostat is controlled by another thermostat."})
     is_pool_controller: bool = field(metadata={"description": "Indicates if the thermostat is a pool controller."})
     max_aux_heat_setpoint: float = field(metadata={"description": "The maximum valid aux heat setpoint."})
@@ -118,7 +140,6 @@ class ThermostatAttributes(TemperatureDeviceAttributes[ThermostatState]):
     desired_fan_mode: ThermostatReportedFanMode | None = field(default=None, metadata={"description": "The desired fan mode."})
     # fmt: on
 
-    # uses_celsius is stored in the Identity model, not the Thermostat model. This value will be injected into the Thermostat model by the controller's _inject_attributes method.
     uses_celsius: bool = field(
         default=False,
         metadata={"description": "Whether the thermostat reports in celsius or fahrenheit."},
@@ -134,8 +155,6 @@ class ThermostatAttributes(TemperatureDeviceAttributes[ThermostatState]):
 @dataclass
 class Thermostat(AdcDeviceResource[ThermostatAttributes]):
     """Thermostat resource."""
-
-    # Fan duration of 0 is indefinite. otherwise value == hours.
 
     resource_type = ResourceType.THERMOSTAT
     attributes_type = ThermostatAttributes
@@ -162,6 +181,12 @@ class Thermostat(AdcDeviceResource[ThermostatAttributes]):
 
     @property
     def supported_fan_durations(self) -> list[int]:
-        """Fan durations supported by device."""
+        """Return allowed fan durations for the current desired mode."""
 
-        return [*self.attributes.supported_fan_durations, 0] if self.attributes.supported_fan_durations else []
+        if not self.attributes.supported_fan_durations:
+            return []
+
+        durations = sorted(set(self.attributes.supported_fan_durations))
+        if self.attributes.supports_indefinite_fan_on and 0 not in durations:
+            durations.insert(0, 0)
+        return durations

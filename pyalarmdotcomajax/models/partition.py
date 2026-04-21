@@ -1,8 +1,7 @@
 """Alarm.com model for partitions."""
 
 from dataclasses import dataclass, field
-from enum import Enum
-
+from enum import IntEnum
 from pyalarmdotcomajax.models.base import (
     AdcDeviceResource,
     AdcResourceAttributes,
@@ -12,10 +11,8 @@ from pyalarmdotcomajax.models.base import (
 from pyalarmdotcomajax.util import get_all_related_entity_ids
 
 
-class PartitionState(Enum):
+class PartitionState(IntEnum):
     """Partition states."""
-
-    # Hidden state is considered armed.
 
     UNKNOWN = 0
     DISARMED = 1
@@ -24,11 +21,14 @@ class PartitionState(Enum):
     ARMED_NIGHT = 4
     HIDDEN = 5
 
+    @classmethod
+    def _missing_(cls: type, value: object) -> PartitionState:
+        """Set default enum member if an unknown value is provided."""
+        return PartitionState.UNKNOWN
 
-class ExtendedArmingOptionItems(Enum):
+
+class ExtendedArmingOptionItems(IntEnum):
     """Partition arming options."""
-
-    # https://www.alarm.com/web/system/assets/customer-site/enums/ArmingOption.js
 
     BYPASS_SENSORS = 0
     NO_ENTRY_DELAY = 1
@@ -36,18 +36,16 @@ class ExtendedArmingOptionItems(Enum):
     NIGHT_ARMING = 3
     SELECTIVELY_BYPASS_SENSORS = 4
     FORCE_ARM = 5
-    # INSTANT_ARM = 6
-    # STAY_ARM = 7
-    # AWAY_ARM = 8
+
+    @classmethod
+    def _missing_(cls: type, value: object) -> ExtendedArmingOptionItems:
+        """Set default enum member if an unknown value is provided."""
+        return ExtendedArmingOptionItems.BYPASS_SENSORS
 
 
 @dataclass
 class ExtendedArmingOptions(AdcResourceAttributes):
-    """
-    Extended arming options.
-
-    Can be either a list of valid options or a list of valid option combinations.
-    """
+    """Extended arming options."""
 
     disarmed: list[ExtendedArmingOptionItems] | list[list[ExtendedArmingOptionItems]] | None = field(default=None)
     armed_stay: list[ExtendedArmingOptionItems] | list[list[ExtendedArmingOptionItems]] | None = field(default=None)
@@ -55,9 +53,27 @@ class ExtendedArmingOptions(AdcResourceAttributes):
     armed_night: list[ExtendedArmingOptionItems] | list[list[ExtendedArmingOptionItems]] | None = field(default=None)
 
 
+def _flatten_options(options: list[ExtendedArmingOptionItems] | list[list[ExtendedArmingOptionItems]] | None) -> list[ExtendedArmingOptionItems]:
+    """Flatten nested option lists returned by Alarm.com."""
+
+    if not options:
+        return []
+
+    flattened: list[ExtendedArmingOptionItems] = []
+    for option in options:
+        if isinstance(option, list):
+            flattened.extend(item for item in option if isinstance(item, ExtendedArmingOptionItems))
+        elif isinstance(option, ExtendedArmingOptionItems):
+            flattened.append(option)
+    return flattened
+
+
 @dataclass
 class PartitionAttributes(BaseManagedDeviceAttributes[PartitionState]):
     """Attributes of partition."""
+
+    desired_state: PartitionState | None = field(metadata={"description": "Desired device state."}, default=None)
+    state: PartitionState = field(metadata={"description": "Current device state."}, default=PartitionState.UNKNOWN)
 
     # fmt: off
     extended_arming_options: ExtendedArmingOptions = field(metadata={"description": "The supported extended arming options for each arming mode."})
@@ -76,7 +92,7 @@ class PartitionAttributes(BaseManagedDeviceAttributes[PartitionState]):
     def supports_night_arming(self) -> bool:
         """Return whether night arming is supported."""
 
-        return ExtendedArmingOptionItems.NIGHT_ARMING in (self.extended_arming_options.armed_night or [])
+        return ExtendedArmingOptionItems.NIGHT_ARMING in _flatten_options(self.extended_arming_options.armed_night)
 
 
 @dataclass
@@ -90,5 +106,4 @@ class Partition(AdcDeviceResource[PartitionAttributes]):
     def items(self) -> set[str]:
         """Return list of child item IDs for this partition."""
 
-        # Removes system ID from list of related entities.
-        return get_all_related_entity_ids(self.api_resource) - set({self.system_id})
+        return get_all_related_entity_ids(self.api_resource) - {self.system_id}

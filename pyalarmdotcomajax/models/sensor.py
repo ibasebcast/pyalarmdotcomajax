@@ -64,8 +64,11 @@ class SensorSubtype(AdcResourceSubtype):
 class SensorAttributes(BaseManagedDeviceAttributes[SensorState]):
     """Attributes of sensor."""
 
+    desired_state: SensorState | None = field(metadata={"description": "Desired device state."}, default=None)
+    state: SensorState = field(metadata={"description": "Current device state."}, default=SensorState.UNKNOWN)
+
     # fmt: off
-    open_closed_status: int = field(metadata={"description":"This sensor is in an 'Open' or 'Closed' state."})
+    open_closed_status: int | None = field(metadata={"description":"This sensor is in an 'Open' or 'Closed' state."}, default=None)
     device_type: SensorSubtype = field(metadata={"description": "The type of sensor."})
     is_bypassed: bool = field(metadata={"description": "This sensor is bypassed."}, default=False)
     is_flex_io: bool = field(metadata={"description": "This sensor is a flex IO sensor."}, default=False)

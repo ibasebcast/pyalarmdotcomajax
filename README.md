@@ -15,7 +15,7 @@ It handles Alarm.com authentication, API access, websocket messaging, and device
 ## Install
 
 ```bash
-pip install git+https://github.com/ibasebcast/pyalarmdotcomajax.git@2026.3.14
+pip install git+https://github.com/ibasebcast/pyalarmdotcomajax.git@2026.4.21
 ```
 
 ## Home Assistant integration requirement
@@ -23,7 +23,7 @@ pip install git+https://github.com/ibasebcast/pyalarmdotcomajax.git@2026.3.14
 ```json
 "requirements": [
   "beautifulsoup4>=4.10.0",
-  "pyalarmdotcomajax @ git+https://github.com/ibasebcast/pyalarmdotcomajax.git@2026.3.14"
+  "pyalarmdotcomajax @ git+https://github.com/ibasebcast/pyalarmdotcomajax.git@2026.4.21"
 ]
 ```
 
@@ -44,7 +44,7 @@ pip install git+https://github.com/ibasebcast/pyalarmdotcomajax.git@2026.3.14
 
 ## Version
 
-This fork release: `2026.3.14`
+This fork release: `2026.4.21`
 Base code line: `0.6.0-beta.9`
 
 

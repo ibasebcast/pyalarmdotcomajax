@@ -129,34 +129,38 @@ class ThermostatController(BaseController[Thermostat]):
         Only one attribute can be set at a time, with the exception of --fan-mode and --fan-mode-duration, which must be set together.
         """
         # Make sure that multiple attributes are not being set at the same time.
-        if [fan_mode, fan_mode_duration].count(None) == 1:
-            raise ValueError("Fan_mode and fan_mode_duration must be used together.")
-        if (
-            attrib_list := [
+        if (fan_mode is None) != (fan_mode_duration is None):
+            raise ValueError("fan_mode and fan_mode_duration must be used together.")
+
+        set_count = sum(
+            value is not None
+            for value in (
                 state,
                 fan_mode,
-                fan_mode_duration,
                 cool_setpoint,
                 heat_setpoint,
                 schedule_mode,
-            ]
-        ).count(None) < len(attrib_list) - 1:
-            raise ValueError("Only one attribute can be set at a time.")
+            )
+        )
+        if set_count == 0:
+            raise ValueError("At least one attribute must be provided.")
+        if set_count > 1 and not ({cool_setpoint, heat_setpoint} != {None} and state is None and fan_mode is None and schedule_mode is None):
+            raise ValueError("Only one attribute can be set at a time, except heat and cool setpoints may be updated together.")
 
         msg_body: dict[str, Any] = {}
 
         if state:
             msg_body[ATTR_DESIRED_STATE] = state.value
-        elif fan_mode and fan_mode_duration:
+        elif fan_mode is not None and fan_mode_duration is not None:
             if fan_mode_duration not in self._resources[id].supported_fan_durations:
                 raise ValueError("Requested fan duration is not supported by the device.")
             msg_body["desiredFanMode"] = fan_mode.value
             msg_body["desiredFanDuration"] = 0 if fan_mode == ThermostatFanMode.AUTO else fan_mode_duration
-        elif cool_setpoint:
+        elif cool_setpoint is not None:
             msg_body[ATTR_DESIRED_COOL_SETPOINT] = cool_setpoint
-        elif heat_setpoint:
+        elif heat_setpoint is not None:
             msg_body[ATTR_DESIRED_HEAT_SETPOINT] = heat_setpoint
-        elif schedule_mode:
+        elif schedule_mode is not None:
             msg_body[ATTR_DESIRED_SCHEDULE_MODE] = schedule_mode.value
 
         await self._send_command(id, "setState", msg_body)

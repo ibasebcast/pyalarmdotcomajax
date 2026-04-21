@@ -411,9 +411,17 @@ class BaseController(ABC, Generic[AdcResourceT]):
     async def _register_or_update_resource(self, resource: Resource) -> str | None:
         """Instantiate resource, add to controller's registry, and notify subscribers."""
 
-        new_adc_resource = self._resource_class(resource)
-
-        new_adc_resource = await self._inject_attributes(new_adc_resource)
+        try:
+            new_adc_resource = self._resource_class(resource)
+            new_adc_resource = await self._inject_attributes(new_adc_resource)
+        except Exception:
+            log.exception(
+                "[%s] Failed to instantiate %s, %s. Moving on...",
+                self.resource_type.name,
+                resource.type,
+                resource.id,
+            )
+            return None
 
         # Check whether any underlying data has changed. We instantiate first (above) since we only
         # want to notify subscribers if attributes used by this library have changed.
