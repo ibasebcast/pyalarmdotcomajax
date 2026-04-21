@@ -72,17 +72,8 @@ def _flatten_options(
 
 
 @dataclass
-class PartitionAttributes(BaseManagedDeviceAttributes):
+class PartitionAttributes(BaseManagedDeviceAttributes[PartitionState]):
     """Attributes of partition."""
-
-    # Required fields without defaults must come first in a dataclass.
-    # The prior ordering caused the import crash you saw at class creation time.
-    extended_arming_options: ExtendedArmingOptions = field(
-        metadata={"description": "The supported extended arming options for each arming mode."}
-    )
-    invalid_extended_arming_options: ExtendedArmingOptions = field(
-        metadata={"description": "The combinations of extended arming options that are invalid for each arming mode."}
-    )
 
     desired_state: PartitionState | None = field(
         metadata={"description": "Desired device state."},
@@ -91,6 +82,15 @@ class PartitionAttributes(BaseManagedDeviceAttributes):
     state: PartitionState = field(
         metadata={"description": "Current device state."},
         default=PartitionState.UNKNOWN,
+    )
+
+    extended_arming_options: ExtendedArmingOptions = field(
+        metadata={"description": "The supported extended arming options for each arming mode."},
+        default_factory=ExtendedArmingOptions,
+    )
+    invalid_extended_arming_options: ExtendedArmingOptions = field(
+        metadata={"description": "The combinations of extended arming options that are invalid for each arming mode."},
+        default_factory=ExtendedArmingOptions,
     )
 
     # fmt: off
@@ -107,9 +107,6 @@ class PartitionAttributes(BaseManagedDeviceAttributes):
     @property
     def supports_night_arming(self) -> bool:
         """Return whether night arming is supported."""
-
-        if self.extended_arming_options is None:
-            return False
 
         return ExtendedArmingOptionItems.NIGHT_ARMING in _flatten_options(
             self.extended_arming_options.armed_night
