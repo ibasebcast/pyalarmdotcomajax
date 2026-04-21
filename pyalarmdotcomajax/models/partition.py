@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass, field
 from enum import IntEnum
+
 from pyalarmdotcomajax.models.base import (
     AdcDeviceResource,
     AdcResourceAttributes,
@@ -22,7 +23,7 @@ class PartitionState(IntEnum):
     HIDDEN = 5
 
     @classmethod
-    def _missing_(cls: type, value: object) -> PartitionState:
+    def _missing_(cls: type, value: object) -> "PartitionState":
         """Set default enum member if an unknown value is provided."""
         return PartitionState.UNKNOWN
 
@@ -38,7 +39,7 @@ class ExtendedArmingOptionItems(IntEnum):
     FORCE_ARM = 5
 
     @classmethod
-    def _missing_(cls: type, value: object) -> ExtendedArmingOptionItems:
+    def _missing_(cls: type, value: object) -> "ExtendedArmingOptionItems":
         """Set default enum member if an unknown value is provided."""
         return ExtendedArmingOptionItems.BYPASS_SENSORS
 
@@ -53,7 +54,9 @@ class ExtendedArmingOptions(AdcResourceAttributes):
     armed_night: list[ExtendedArmingOptionItems] | list[list[ExtendedArmingOptionItems]] | None = field(default=None)
 
 
-def _flatten_options(options: list[ExtendedArmingOptionItems] | list[list[ExtendedArmingOptionItems]] | None) -> list[ExtendedArmingOptionItems]:
+def _flatten_options(
+    options: list[ExtendedArmingOptionItems] | list[list[ExtendedArmingOptionItems]] | None,
+) -> list[ExtendedArmingOptionItems]:
     """Flatten nested option lists returned by Alarm.com."""
 
     if not options:
@@ -72,12 +75,25 @@ def _flatten_options(options: list[ExtendedArmingOptionItems] | list[list[Extend
 class PartitionAttributes(BaseManagedDeviceAttributes[PartitionState]):
     """Attributes of partition."""
 
-    desired_state: PartitionState | None = field(metadata={"description": "Desired device state."}, default=None)
-    state: PartitionState = field(metadata={"description": "Current device state."}, default=PartitionState.UNKNOWN)
+    # Required fields without defaults must come first in a dataclass.
+    # The prior ordering caused the import crash you saw at class creation time.
+    extended_arming_options: ExtendedArmingOptions = field(
+        metadata={"description": "The supported extended arming options for each arming mode."}
+    )
+    invalid_extended_arming_options: ExtendedArmingOptions = field(
+        metadata={"description": "The combinations of extended arming options that are invalid for each arming mode."}
+    )
+
+    desired_state: PartitionState | None = field(
+        metadata={"description": "Desired device state."},
+        default=None,
+    )
+    state: PartitionState = field(
+        metadata={"description": "Current device state."},
+        default=PartitionState.UNKNOWN,
+    )
 
     # fmt: off
-    extended_arming_options: ExtendedArmingOptions = field(metadata={"description": "The supported extended arming options for each arming mode."})
-    invalid_extended_arming_options: ExtendedArmingOptions = field(metadata={"description": "The combinations of extended arming options that are invalid for each arming mode."})
     can_bypass_sensor_when_armed: bool = field(metadata={"description": "Indicates if the panel supports bypass commands when armed."}, default=False)
     has_open_bypassable_sensors: bool = field(metadata={"description": "Indicates if the partition has any open sensors that can be bypassed."}, default=False)
     has_sensor_in_trouble_condition: bool = field(metadata={"description": "Indicates if the partition has any sensors in a trouble condition."}, default=False)
@@ -92,7 +108,12 @@ class PartitionAttributes(BaseManagedDeviceAttributes[PartitionState]):
     def supports_night_arming(self) -> bool:
         """Return whether night arming is supported."""
 
-        return ExtendedArmingOptionItems.NIGHT_ARMING in _flatten_options(self.extended_arming_options.armed_night)
+        if self.extended_arming_options is None:
+            return False
+
+        return ExtendedArmingOptionItems.NIGHT_ARMING in _flatten_options(
+            self.extended_arming_options.armed_night
+        )
 
 
 @dataclass

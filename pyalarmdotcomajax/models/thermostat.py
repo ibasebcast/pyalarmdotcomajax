@@ -37,7 +37,7 @@ class ThermostatState(IntEnum):
     AUXHEAT = 5
 
     @classmethod
-    def _missing_(cls: type, value: object) -> ThermostatState:
+    def _missing_(cls: type, value: object) -> "ThermostatState":
         """Set default enum member if an unknown value is provided."""
         return ThermostatState.UNKNOWN
 
@@ -55,7 +55,7 @@ class ThermostatReportedFanMode(IntEnum):
     HUMIDITY = 7
 
     @classmethod
-    def _missing_(cls: type, value: object) -> ThermostatReportedFanMode:
+    def _missing_(cls: type, value: object) -> "ThermostatReportedFanMode":
         """Set default enum member if an unknown value is provided."""
         return ThermostatReportedFanMode.AUTO_LOW
 
@@ -69,7 +69,7 @@ class ThermostatFanMode(IntEnum):
     CIRCULATE = 2
 
     @classmethod
-    def _missing_(cls: type, value: object) -> ThermostatFanMode:
+    def _missing_(cls: type, value: object) -> "ThermostatFanMode":
         """Set default enum member if an unknown value is provided."""
         return ThermostatFanMode.UNKNOWN
 
@@ -82,7 +82,7 @@ class ThermostatScheduleMode(IntEnum):
     SMART_SCHEDULES = 2
 
     @classmethod
-    def _missing_(cls: type, value: object) -> ThermostatScheduleMode:
+    def _missing_(cls: type, value: object) -> "ThermostatScheduleMode":
         """Set default enum member if an unknown value is provided."""
         return ThermostatScheduleMode.MANUAL_MODE
 
@@ -107,7 +107,7 @@ class ThermostatAttributes(TemperatureDeviceAttributes[ThermostatState]):
     cool_setpoint: float = field(metadata={"description": "The current cool setpoint."})
     desired_cool_setpoint: float = field(metadata={"description": "The desired cool setpoint."})
     desired_heat_setpoint: float = field(metadata={"description": "The desired heat setpoint."})
-    fan_duration: int | None = field(metadata={"description": "The duration to run the fan. Only used to offset the commands."})
+    fan_duration: int | None = field(metadata={"description": "The duration to run the fan. Only used to offset the commands."}, default=None)
     fan_mode: ThermostatReportedFanMode | None = field(default=None, metadata={"description": "The current fan mode."})
     forwarding_ambient_temp: float = field(metadata={"description": "The current temperature including any additional temperature sensor averaging."})
     has_pending_setpoint_change: bool = field(metadata={"description": "Indicates if there is a pending setpoint change."})
@@ -125,7 +125,7 @@ class ThermostatAttributes(TemperatureDeviceAttributes[ThermostatState]):
     requires_setup: bool = field(metadata={"description": "Indicates if the thermostat requires a setup wizard."})
     schedule_mode: ThermostatScheduleMode = field(metadata={"description": "The current schedule mode."})
     setpoint_offset: float = field(metadata={"description": "The amount to increment or decrement the setpoint by."})
-    supported_fan_durations: list[int] = field(metadata={"description": "The supported fan mode durations."})
+    supported_fan_durations: list[int] = field(metadata={"description": "The supported fan mode durations."}, default_factory=list)
     supports_auto_mode: bool = field(metadata={"description": "Indicates if the thermostat supports the auto temperature mode."})
     supports_aux_heat_mode: bool = field(metadata={"description": "Indicates if the thermostat supports the aux heat temperature mode."})
     supports_circulate_fan_mode_always: bool = field(metadata={"description": "Indicates if the thermostat supports the circulate fan mode regardless of temperature mode."})
@@ -164,18 +164,21 @@ class Thermostat(AdcDeviceResource[ThermostatAttributes]):
     def fan_mode(self) -> ThermostatFanMode:
         """The current fan mode."""
 
-        if self.attributes.desired_fan_mode in (
+        current_fan_mode = self.attributes.desired_fan_mode or self.attributes.fan_mode
+
+        if current_fan_mode in (
             ThermostatReportedFanMode.AUTO_LOW,
             ThermostatReportedFanMode.AUTO_MEDIUM,
+            ThermostatReportedFanMode.AUTO_HIGH,
         ):
             return ThermostatFanMode.AUTO
-        if self.attributes.desired_fan_mode in (
+        if current_fan_mode in (
             ThermostatReportedFanMode.ON_LOW,
             ThermostatReportedFanMode.ON_MEDIUM,
             ThermostatReportedFanMode.ON_HIGH,
         ):
             return ThermostatFanMode.ON
-        if self.attributes.desired_fan_mode == ThermostatReportedFanMode.CIRCULATE:
+        if current_fan_mode == ThermostatReportedFanMode.CIRCULATE:
             return ThermostatFanMode.CIRCULATE
         return ThermostatFanMode.UNKNOWN
 
