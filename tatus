@@ -1,0 +1,62 @@
+warning: in the working copy of 'LICENSE', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'README.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'pyalarmdotcomajax/__init__.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'pyalarmdotcomajax/_version.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'pyalarmdotcomajax/adc/README.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'pyalarmdotcomajax/adc/adc.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'pyalarmdotcomajax/adc/common.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'pyalarmdotcomajax/adc/util.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'pyalarmdotcomajax/const.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'pyalarmdotcomajax/controllers/__init__.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'pyalarmdotcomajax/controllers/auth.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'pyalarmdotcomajax/controllers/base.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'pyalarmdotcomajax/controllers/cameras.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'pyalarmdotcomajax/controllers/device_catalogs.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'pyalarmdotcomajax/controllers/garage_doors.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'pyalarmdotcomajax/controllers/gates.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'pyalarmdotcomajax/controllers/image_sensors.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'pyalarmdotcomajax/controllers/lights.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'pyalarmdotcomajax/controllers/locks.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'pyalarmdotcomajax/controllers/partitions.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'pyalarmdotcomajax/controllers/sensors.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'pyalarmdotcomajax/controllers/systems.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'pyalarmdotcomajax/controllers/thermostats.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'pyalarmdotcomajax/controllers/trouble_conditions.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'pyalarmdotcomajax/controllers/users.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'pyalarmdotcomajax/controllers/water_sensors.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'pyalarmdotcomajax/controllers/water_valve.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'pyalarmdotcomajax/events.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'pyalarmdotcomajax/exceptions.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'pyalarmdotcomajax/models/__init__.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'pyalarmdotcomajax/models/auth.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'pyalarmdotcomajax/models/base.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'pyalarmdotcomajax/models/camera.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'pyalarmdotcomajax/models/device_catalog.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'pyalarmdotcomajax/models/garage_door.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'pyalarmdotcomajax/models/gate.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'pyalarmdotcomajax/models/image_sensor.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'pyalarmdotcomajax/models/jsonapi/__init__.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'pyalarmdotcomajax/models/jsonapi/jsonapi.pydantic.py.txt', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'pyalarmdotcomajax/models/jsonapi/jsonapi_types.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'pyalarmdotcomajax/models/jsonapi/utils.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'pyalarmdotcomajax/models/light.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'pyalarmdotcomajax/models/lock.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'pyalarmdotcomajax/models/partition.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'pyalarmdotcomajax/models/sensor.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'pyalarmdotcomajax/models/system.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'pyalarmdotcomajax/models/thermostat.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'pyalarmdotcomajax/models/trouble_condition.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'pyalarmdotcomajax/models/user.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'pyalarmdotcomajax/models/water_sensor.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'pyalarmdotcomajax/models/water_valve.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'pyalarmdotcomajax/util.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'pyalarmdotcomajax/websocket/__init__.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'pyalarmdotcomajax/websocket/client.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'pyalarmdotcomajax/websocket/messages.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'pyproject.toml', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'requirements.txt', LF will be replaced by CRLF the next time Git touches it
+ pyalarmdotcomajax/_version.py         |  2 [32m+[m[31m-[m
+ pyalarmdotcomajax/controllers/auth.py | 34 [32m+++++++++++++++++++++++[m[31m-----------[m
+ pyalarmdotcomajax/controllers/base.py | 13 [32m+++++++++++[m[31m--[m
+ pyproject.toml                        |  2 [32m+[m[31m-[m
+ 4 files changed, 36 insertions(+), 15 deletions(-)

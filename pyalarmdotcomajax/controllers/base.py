@@ -21,7 +21,7 @@ from pyalarmdotcomajax.events import (
     EventBrokerTopic,
     ResourceEventMessage,
 )
-from pyalarmdotcomajax.exceptions import UnknownDevice
+from pyalarmdotcomajax.exceptions import NotAuthorized, UnknownDevice
 from pyalarmdotcomajax.models import AdcResourceT
 from pyalarmdotcomajax.util import resources_pretty, resources_raw
 from pyalarmdotcomajax.websocket.client import (
@@ -319,7 +319,16 @@ class BaseController(ABC, Generic[AdcResourceT]):
 
         # Refresh endpoint on websocket reconnect.
         if isinstance(message, ConnectionEvent) and message.current_state == WebSocketState.RECONNECTED:
-            return await self._refresh()
+            try:
+                return await self._refresh()
+            except NotAuthorized:
+                # Some resource types (e.g. imageSensors) return 423 for accounts that don't
+                # have that feature. Swallow the error here so one unsupported controller
+                # doesn't crash the reconnect refresh for all other controllers.
+                log.debug(
+                    "[%s] Skipping reconnect refresh — endpoint not authorized for this account (423).",
+                    self.resource_type.name,
+                )
 
         if not isinstance(message, RawResourceEventMessage):
             return None

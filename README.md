@@ -23,7 +23,7 @@ pip install git+https://github.com/ibasebcast/pyalarmdotcomajax.git@2026.4.21
 ```json
 "requirements": [
   "beautifulsoup4>=4.10.0",
-  "pyalarmdotcomajax @ git+https://github.com/ibasebcast/pyalarmdotcomajax.git@2026.4.21"
+  "pyalarmdotcomajax @ git+https://github.com/ibasebcast/pyalarmdotcomajax.git@2026.5.3"
 ]
 ```
 
@@ -44,7 +44,7 @@ pip install git+https://github.com/ibasebcast/pyalarmdotcomajax.git@2026.4.21
 
 ## Version
 
-This fork release: `2026.4.21`
+This fork release: `2026.5.3`
 Base code line: `0.6.0-beta.9`
 
 
