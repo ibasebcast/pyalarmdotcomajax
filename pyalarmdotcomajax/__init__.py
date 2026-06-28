@@ -639,12 +639,27 @@ class AlarmBridge:
             # Update MFA cookie.
             # We need to store the MFA cookie locally in order to reauthenticate after a session timeout without
             # having to reprompt for an OTP.
+            #
+            # Alarm.com sets the twoFactorAuthenticationId cookie on the verifyTwoFactorCode /
+            # trustTwoFactorDevice responses, but it is not always present on the final
+            # ClientResponse: aiohttp follows redirects by default, and resp.cookies only exposes
+            # the Set-Cookie headers of the *last* response in the chain. The session cookie jar,
+            # however, accumulates cookies from every hop, so fall back to it when the cookie is
+            # not on this response. Without this, OTP verification silently fails to produce a
+            # token and login is rejected with "Could not find MFA cookie".
 
-            if (mfa_cookie := resp.cookies.get(MFA_COOKIE_KEY)) and (
-                mfa_cookie.value != self._auth_controller.mfa_cookie
-            ):
+            new_mfa_cookie: str | None = None
+            if resp_mfa_cookie := resp.cookies.get(MFA_COOKIE_KEY):
+                new_mfa_cookie = resp_mfa_cookie.value
+            elif self._websession is not None:
+                for jar_cookie in self._websession.cookie_jar:
+                    if jar_cookie.key == MFA_COOKIE_KEY and jar_cookie.value:
+                        new_mfa_cookie = jar_cookie.value
+                        break
+
+            if new_mfa_cookie and new_mfa_cookie != self._auth_controller.mfa_cookie:
                 log.debug("Got new token from MFA cookie.")
-                self._auth_controller.mfa_cookie = mfa_cookie.value
+                self._auth_controller.mfa_cookie = new_mfa_cookie
 
             # If DEBUG logging is enabled, log the request and response.
             if log.level < logging.DEBUG:

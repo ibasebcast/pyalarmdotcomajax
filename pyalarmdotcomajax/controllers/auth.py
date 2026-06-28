@@ -383,6 +383,9 @@ class AuthenticationController:
     async def submit_otp(self, code: str, method: OtpType, device_name: str | None = None) -> str | None:
         """Submit OTP and register device."""
 
+        # An incorrect code makes verifyTwoFactorCode return a non-200 mini response, which the
+        # bridge raises as AuthenticationFailed/NotAuthorized before we get here. So reaching the
+        # next line means the code itself was accepted.
         await self._bridge.post(
             path=TWO_FACTOR_PATH,
             id=self._identities.items[0].id,
@@ -391,31 +394,33 @@ class AuthenticationController:
             mini_response=True,
         )
 
-        # Alarm.com sets the MFA cookie on the verifyTwoFactorCode response.
-        # Check for it here before attempting device registration so that a
-        # failure in the trust step doesn't mask a successful verification.
+        # Register/trust this device. Besides "remembering" the device, the trustTwoFactorDevice
+        # response is where Alarm.com reliably returns the twoFactorAuthenticationId (MFA) cookie,
+        # so we run it whenever a device name is available. The cookie is harvested into
+        # self.mfa_cookie by the bridge's request handler (from the response or the session cookie
+        # jar) as these requests execute.
+        if device_name:
+            try:
+                await self._bridge.post(
+                    path=TWO_FACTOR_PATH,
+                    id=self._identities.items[0].id,
+                    action="trustTwoFactorDevice",
+                    json={"deviceName": device_name},
+                    mini_response=True,
+                )
+            except Exception:
+                # Best-effort: don't let a trust-step failure mask a successful verification if the
+                # MFA cookie was already collected. We re-check for the cookie below.
+                log.warning(
+                    "Device trust registration failed. This device may not be remembered and you "
+                    "could be prompted for OTP again on the next login.",
+                    exc_info=True,
+                )
+        else:
+            log.debug("Skipping device registration (no device name provided).")
+
+        # Validate only after both requests have had a chance to set the cookie.
         if not self.mfa_cookie:
             raise UnexpectedResponse("Could not find MFA cookie after submitting OTP code.")
-
-        if not device_name:
-            log.debug("Skipping device registration.")
-            return self.mfa_cookie
-
-        # trustTwoFactorDevice is best-effort: failure here should not invalidate
-        # a successful OTP verification. The MFA cookie is already set.
-        try:
-            await self._bridge.post(
-                path=TWO_FACTOR_PATH,
-                id=self._identities.items[0].id,
-                action="trustTwoFactorDevice",
-                json={"deviceName": device_name if device_name else f"pyalarmdotcomajax on {socket.gethostname()}"},
-                mini_response=True,
-            )
-        except Exception:
-            log.warning(
-                "Device trust registration failed. OTP verification succeeded and the MFA cookie is set, "
-                "but this device will not be remembered. You may be prompted for OTP again on next login.",
-                exc_info=True,
-            )
 
         return self.mfa_cookie
