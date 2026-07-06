@@ -336,6 +336,32 @@ class AlarmBridge:
         if init_tasks:
             await asyncio.gather(*init_tasks)
 
+    async def refresh_all_resources(self) -> None:
+        """Force a re-fetch and re-publish of state for every already-initialized resource controller.
+
+        fetch_full_state() (and the controller.initialize() calls it makes) is a one-time
+        setup path: each controller's initialize() returns immediately if it has already run
+        once, so calling fetch_full_state() again - e.g. from a periodic safety-net poll meant
+        to catch state missed by a dropped WebSocket event - is a silent no-op. It does not
+        raise, log a warning, or refresh anything.
+
+        This method instead calls each controller's _refresh() directly, the same mechanism
+        already used to catch up state when the WebSocket reconnects (see
+        BaseController._base_handle_event). Unlike initialize(), _refresh() has no one-time
+        guard and safely re-fetches and re-publishes RESOURCE_UPDATED events every time it's
+        called.
+        """
+
+        refresh_tasks = [
+            controller._refresh()  # noqa: SLF001
+            for controller in self.resource_controllers
+            if controller.initialized
+        ]
+
+        if refresh_tasks:
+            await asyncio.gather(*refresh_tasks, return_exceptions=True)
+
+
     async def start_event_monitoring(
         self, ws_status_callback: EventBrokerCallbackT | None = None
     ) -> None | Callable:

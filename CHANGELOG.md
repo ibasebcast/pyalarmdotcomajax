@@ -1,9 +1,19 @@
+## 2026.7.6
+
+### Fixed
+- **Periodic "safety net" full-state refresh was a silent no-op** (ha-alarmdotcom#42, misreported as "Smart arming breaks the integration"): `fetch_full_state()` calls each resource controller's `initialize()`, which returns immediately if the controller has already been initialized once — which every controller has been, after the integration's initial startup. So any code calling `fetch_full_state()` a second time (e.g. a periodic poll meant to catch state missed by a dropped WebSocket event) did nothing at all: no error, no log line, no refreshed state. If a WebSocket event was ever missed — during a reconnect, a brief drop, or any other transient blip — state could stay stale indefinitely, correcting only on a full integration reload. This affected any state change, not just "smart arming": manual arm/disarm from the Alarm.com app or even from Home Assistant itself could go unreflected once this occurred. Added `refresh_all_resources()`, a new bridge method that calls each controller's `_refresh()` directly (the same mechanism already used when the WebSocket reconnects), bypassing the one-time `initialize()` guard so it can safely be called repeatedly.
+
+---
+
 ## 2026.7.5
 
 ### Fixed
+- **OTP still fails after 2026.5.3 (reopened #1 / ha-alarmdotcom#21)** — fix contributed by @jsight in #2. Two compounding bugs, not one:
+  1. **The 5.3 "fix" was actually a regression.** It moved the MFA-cookie check to run immediately after `verifyTwoFactorCode`, *before* `trustTwoFactorDevice` — but Alarm.com reliably sets the `twoFactorAuthenticationId` cookie on the *trust* response, not the verify response. Since Home Assistant's config flow always supplies a device name, this made the "Could not find MFA cookie" failure happen on every single login instead of intermittently. Fix: `trustTwoFactorDevice` now always runs (best-effort, wrapped in try/except) when a device name is provided, and the cookie is checked only after both requests have had a chance to set it.
+  2. **Cookie capture itself was unreliable.** aiohttp follows redirects by default, and `ClientResponse.cookies` only exposes the `Set-Cookie` headers of the *last* response in a redirect chain — so a cookie set on an earlier hop could be invisible no matter when it was checked. Fix: `create_request` now falls back to the session's `cookie_jar` (which accumulates cookies across every hop) when the cookie isn't present on the immediate response.
+- Thanks to @lwimble for independently confirming both root causes and testing an equivalent patch in production.
 
-
-- **OTP "Failed to Connect" still occurring after 2026.5.3** (reopened #21): The 2026.5.3 fix in pyalarmdotcomajax turned out to be a regression, not a fix — it checked for the MFA cookie before trustTwoFactorDevice ran, but Alarm.com reliably sets that cookie on the trust response, not the verify response. Since HA's config flow always provides a device name, this made the failure happen on every login. There was also a second, independent bug: aiohttp only exposes cookies from the last response in a redirect chain, so the cookie could be invisible even when present in the redirect history. Both fixed upstream in pyalarmdotcomajax 2026.7.5 (contributed by @jsight, confirmed independently by @lwimble). Bumped dependency pin accordingly.
+---
 
 ## 2026.5.3
 

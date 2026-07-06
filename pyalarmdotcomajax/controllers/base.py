@@ -143,6 +143,12 @@ class BaseController(ABC, Generic[AdcResourceT]):
     # INITIALIZATION #
     ##################
 
+    @property
+    def initialized(self) -> bool:
+        """Return whether this controller has completed its one-time initialization."""
+
+        return self._initialized
+
     async def initialize(
         self,
         target_device_ids: list[str] | None = None,
