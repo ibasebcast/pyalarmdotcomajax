@@ -1,3 +1,10 @@
+## 2026.7.5
+
+### Fixed
+
+
+- **OTP "Failed to Connect" still occurring after 2026.5.3** (reopened #21): The 2026.5.3 fix in pyalarmdotcomajax turned out to be a regression, not a fix — it checked for the MFA cookie before trustTwoFactorDevice ran, but Alarm.com reliably sets that cookie on the trust response, not the verify response. Since HA's config flow always provides a device name, this made the failure happen on every login. There was also a second, independent bug: aiohttp only exposes cookies from the last response in a redirect chain, so the cookie could be invisible even when present in the redirect history. Both fixed upstream in pyalarmdotcomajax 2026.7.5 (contributed by @jsight, confirmed independently by @lwimble). Bumped dependency pin accordingly.
+
 ## 2026.5.3
 
 ### Fixed
