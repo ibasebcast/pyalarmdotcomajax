@@ -1,3 +1,15 @@
+# Maintenance Status
+
+⚠️ This repository is no longer the primary source of development for the Alarm.com Home Assistant integration.
+
+As of Alarm.com integration version 2026.7.6.1b0, the `pyalarmdotcomajax` library was vendored directly into the integration repository and is maintained there.
+
+The active project is:
+
+https://github.com/ibasebcast/ha-alarmdotcom
+
+This repository remains available for historical reference and for installations that still depend on the standalone package, but new development and bug fixes are performed in the main integration repository.
+
 # pyalarmdotcomajax
 
 Async Python interface for Alarm.com, maintained for use with the `ha-alarmdotcom` Home Assistant integration.
